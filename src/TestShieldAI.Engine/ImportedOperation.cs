@@ -7,13 +7,15 @@ public sealed class ImportedOperation
         string path,
         IReadOnlyList<ImportedParameter> parameters,
         ImportedSchema? requestBody,
-        IReadOnlyDictionary<string, ImportedSchema?> responses)
+        IReadOnlyDictionary<string, ImportedSchema?> responses,
+        string? specKey = null)
     {
         Method = method;
         Path = path;
         Parameters = parameters;
         RequestBody = requestBody;
         Responses = responses;
+        SpecKey = specKey;
     }
 
     public string Method { get; }
@@ -25,4 +27,6 @@ public sealed class ImportedOperation
     public ImportedSchema? RequestBody { get; }
 
     public IReadOnlyDictionary<string, ImportedSchema?> Responses { get; }
+
+    public string? SpecKey { get; }
 }

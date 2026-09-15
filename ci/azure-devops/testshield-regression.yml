@@ -1,0 +1,36 @@
+# Azure DevOps template: run TestShield AI regression against an existing project.
+# Consuming pipelines supply the TestShield URL and project ID.
+# Do not commit tokens. Provide TESTSHIELD_TOKEN as a secret pipeline variable when needed.
+
+parameters:
+  - name: testShieldBaseUrl
+    type: string
+  - name: testShieldProjectId
+    type: string
+  - name: workingDirectory
+    type: string
+    default: "."
+  - name: scriptPath
+    type: string
+    default: "ci/azure-devops/testshield-run.ps1"
+  - name: timeoutSeconds
+    type: number
+    default: 300
+
+steps:
+  - checkout: self
+    displayName: Checkout repository
+
+  - task: PowerShell@2
+    displayName: Run TestShield AI regression
+    env:
+      TESTSHIELD_TOKEN: $(TESTSHIELD_TOKEN)
+    inputs:
+      pwsh: true
+      workingDirectory: ${{ parameters.workingDirectory }}
+      filePath: ${{ parameters.scriptPath }}
+      arguments: >-
+        -BaseUrl "${{ parameters.testShieldBaseUrl }}"
+        -ProjectId "${{ parameters.testShieldProjectId }}"
+        -TimeoutSeconds ${{ parameters.timeoutSeconds }}
+      failOnStderr: false

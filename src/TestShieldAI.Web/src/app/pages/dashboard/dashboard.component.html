@@ -1,0 +1,225 @@
+<section class="page" *ngIf="project">
+  <header class="project-summary">
+    <div>
+      <h2>{{ project.name }}</h2>
+      <p>Base URL: <code>{{ project.baseUrl }}</code></p>
+    </div>
+    <div class="actions">
+      <button type="button" data-testid="generate-tests" (click)="generateTests()" [disabled]="loading">
+        {{ busy === 'generate' ? 'Generating…' : 'Generate Tests' }}
+      </button>
+      <button type="button" class="primary" data-testid="run-tests" (click)="runTests()" [disabled]="loading">
+        {{ busy === 'run' ? 'Running…' : 'Run Tests' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="error" data-testid="error" *ngIf="error">{{ error }}</div>
+  <p class="busy" *ngIf="loading">Working… please wait.</p>
+  <p class="note" *ngIf="lastAction === 'generate'">
+    Tests were generated and have not been executed. Use Run Tests for execution, validation, and the Safe / Review / Block decision.
+  </p>
+
+  <section class="import card">
+    <h3>OpenAPI import</h3>
+    <textarea [(ngModel)]="specification" rows="8" placeholder="Paste OpenAPI or Swagger JSON/YAML"></textarea>
+    <button type="button" (click)="importSpec()" [disabled]="loading || !specification.trim()">
+      {{ busy === 'import' ? 'Importing…' : 'Import specification' }}
+    </button>
+    <p class="success" *ngIf="importMessage">{{ importMessage }}</p>
+  </section>
+
+  <section class="grid two">
+    <article class="card decision" data-testid="decision" [ngClass]="decisionClass(decision)">
+      <h3>Decision</h3>
+      <p class="decision-value" *ngIf="decision">{{ decision }}</p>
+      <p *ngIf="!decision">Run tests to evaluate Safe / Review / Block. Angular does not calculate this decision.</p>
+    </article>
+    <article class="card" data-testid="risk" *ngIf="risk">
+      <h3>Risk</h3>
+      <p><strong>{{ risk.level }}</strong> — {{ risk.title }}</p>
+      <p>{{ risk.summary }}</p>
+      <ng-container *ngIf="risk.recommendations?.length">
+        <h4>Recommendations</h4>
+        <ul data-testid="risk-recommendations">
+          <li *ngFor="let recommendation of risk.recommendations">{{ recommendation }}</li>
+        </ul>
+      </ng-container>
+      <ul *ngIf="risk.reasons?.length">
+        <li *ngFor="let reason of risk.reasons">{{ reason }}</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="card" data-testid="coverage" *ngIf="coverage">
+    <h3>Coverage</h3>
+    <p class="muted">Deterministic operation coverage from the TestShield API. AI scenario counts are shown separately and are not used to recalculate coverage.</p>
+    <div class="bar"><span [style.width.%]="coverage.coveragePercent"></span></div>
+    <dl class="stats">
+      <div><dt>Total operations</dt><dd>{{ coverage.totalOperations }}</dd></div>
+      <div><dt>Covered operations</dt><dd>{{ coverage.coveredOperations }}</dd></div>
+      <div><dt>Uncovered operations</dt><dd>{{ coverage.uncoveredOperations }}</dd></div>
+      <div><dt>Coverage %</dt><dd>{{ coverage.coveragePercent }}%</dd></div>
+      <div><dt>AI covered operations</dt><dd>{{ coverage.aiCoveredOperations }}</dd></div>
+    </dl>
+    <h4>Scenario counts</h4>
+    <dl class="stats">
+      <div><dt>Happy Path</dt><dd>{{ coverage.scenarios.happyPath }}</dd></div>
+      <div><dt>Negative</dt><dd>{{ coverage.scenarios.negative }}</dd></div>
+      <div><dt>AI Positive</dt><dd>{{ coverage.scenarios.aiPositive }}</dd></div>
+      <div><dt>AI Negative</dt><dd>{{ coverage.scenarios.aiNegative }}</dd></div>
+      <div><dt>AI Edge</dt><dd>{{ coverage.scenarios.aiEdge }}</dd></div>
+    </dl>
+    <h4>Coverage gaps</h4>
+    <p *ngIf="coverage.gaps.length === 0">No coverage gaps.</p>
+    <div class="table-wrap" *ngIf="coverage.gaps.length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>SpecKey</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let gap of coverage.gaps">
+          <td>{{ gap.specKey }}</td>
+          <td>{{ gap.method }}</td>
+          <td>{{ gap.path }}</td>
+          <td>{{ gap.reason }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Findings</h3>
+    <p data-testid="findings-empty" *ngIf="findings.length === 0">No regression or contract drift findings.</p>
+    <div class="table-wrap" *ngIf="findings.length > 0">
+    <table data-testid="findings">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Severity</th>
+          <th>Kind</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Expected</th>
+          <th>Current</th>
+          <th>JsonPath</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let finding of findings" [class.high]="finding.severity === 'High'">
+          <td>{{ finding.category }}</td>
+          <td>{{ finding.severity }}</td>
+          <td>{{ finding.kind }}</td>
+          <td>{{ finding.method }}</td>
+          <td>{{ finding.path }}</td>
+          <td>{{ finding.expected }}</td>
+          <td>{{ finding.current }}</td>
+          <td>{{ finding.jsonPath }}</td>
+          <td>{{ finding.message }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="lastAction === 'generate'">
+    <h3>Generated tests</h3>
+    <p class="muted">These cases were generated. They have not been executed.</p>
+    <div class="table-wrap">
+    <table data-testid="generated-tests">
+      <thead>
+        <tr>
+          <th>Kind</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Expected status</th>
+          <th>SpecKey</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let test of generatedTests">
+          <td>{{ test.kind }}</td>
+          <td>{{ test.method }}</td>
+          <td>{{ test.path }}</td>
+          <td>{{ test.expectedStatus }}</td>
+          <td>{{ test.specKey }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="lastAction === 'run'">
+    <h3>Test results</h3>
+    <div class="table-wrap">
+    <table data-testid="test-results">
+      <thead>
+        <tr>
+          <th>Kind</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Expected</th>
+          <th>Actual</th>
+          <th>Matched</th>
+          <th>Validation</th>
+          <th>Error</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let result of results; let i = index">
+          <td>{{ result.kind }}</td>
+          <td>{{ result.method }}</td>
+          <td>{{ result.path }}</td>
+          <td>{{ result.expectedStatus }}</td>
+          <td>{{ result.actualStatus }}</td>
+          <td>{{ result.statusMatched }}</td>
+          <td>{{ result.validation.outcome }}</td>
+          <td>{{ result.error }}</td>
+          <td>
+            <button type="button" class="link" (click)="toggleResult(i)">
+              {{ expandedResult === i ? 'Hide details' : 'Details' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="details" *ngIf="expandedResult !== null && results[expandedResult]">
+      <p><strong>SpecKey:</strong> {{ results[expandedResult].specKey || '(none)' }}</p>
+      <p><strong>Kind:</strong> {{ results[expandedResult].kind }}</p>
+      <p><strong>Validation outcome:</strong> {{ results[expandedResult].validation.outcome }}</p>
+      <ul *ngIf="results[expandedResult].validation.failures.length > 0">
+        <li *ngFor="let failure of results[expandedResult].validation.failures">
+          {{ failure.jsonPath }} — {{ failure.message }}
+        </li>
+      </ul>
+      <pre>{{ results[expandedResult].body || '(no response body)' }}</pre>
+    </div>
+  </section>
+
+  <section class="card" data-testid="ai-summary" *ngIf="ai">
+    <h3>AI summary</h3>
+    <p *ngIf="!ai.enabled">AI scenario generation is currently disabled.</p>
+    <ng-container *ngIf="ai.enabled">
+      <dl class="stats">
+        <div><dt>Enabled</dt><dd>Yes</dd></div>
+        <div><dt>Generated</dt><dd>{{ ai.generatedCount }}</dd></div>
+        <div><dt>Accepted</dt><dd>{{ ai.acceptedCount }}</dd></div>
+        <div><dt>Warnings</dt><dd>{{ ai.warningCount }}</dd></div>
+      </dl>
+      <ul *ngIf="ai.warnings.length > 0">
+        <li *ngFor="let warning of ai.warnings">{{ warning }}</li>
+      </ul>
+    </ng-container>
+  </section>
+</section>
+
+<p class="error" *ngIf="!project && error">{{ error }}</p>

@@ -1,0 +1,13 @@
+<header class="app-header">
+  <div>
+    <h1>TestShield AI</h1>
+    <p class="subtitle">API Regression &amp; Contract Protection</p>
+  </div>
+  <nav>
+    <a routerLink="/projects" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Projects</a>
+    <a [routerLink]="dashboardLink()" routerLinkActive="active">Dashboard</a>
+  </nav>
+</header>
+<main class="app-main">
+  <router-outlet />
+</main>

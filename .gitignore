@@ -8,3 +8,6 @@ appsettings.Development.json
 .vscode/
 .idea/
 *.log
+**/node_modules/
+**/.angular/
+**/dist/

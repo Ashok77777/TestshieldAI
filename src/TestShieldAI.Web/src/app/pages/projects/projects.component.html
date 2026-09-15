@@ -1,0 +1,33 @@
+<section class="page">
+  <h2>Projects</h2>
+  <p class="lede">Select a project to open its regression dashboard.</p>
+
+  <div class="error" data-testid="error" *ngIf="error">{{ error }}</div>
+  <p *ngIf="loading">Loading projects…</p>
+
+  <div class="empty" data-testid="empty-projects" *ngIf="!loading && projects.length === 0 && !error">
+    No projects yet. Create one below to get started.
+  </div>
+
+  <ul class="project-list" data-testid="project-list" *ngIf="projects.length > 0">
+    <li *ngFor="let project of projects">
+      <button type="button" (click)="select(project)">
+        <strong>{{ project.name }}</strong>
+        <span>{{ project.baseUrl }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <form class="create" [formGroup]="form" (ngSubmit)="create()">
+    <h3>Create project</h3>
+    <label>
+      Name
+      <input formControlName="name" />
+    </label>
+    <label>
+      Base URL
+      <input formControlName="baseUrl" placeholder="https://api.example.com" />
+    </label>
+    <button type="submit" [disabled]="creating">{{ creating ? 'Creating…' : 'Create project' }}</button>
+  </form>
+</section>

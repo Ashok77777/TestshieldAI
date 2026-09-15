@@ -234,6 +234,10 @@ public class OpenApiIngestorTests
         var result = _ingestor.Import(ValidOpenApi3Spec);
 
         Assert.Equal(2, result.Operations.Count);
+        Assert.Equal("Pets", result.Title);
+        Assert.Equal("1.0.0", result.Version);
+        Assert.Equal("Pets", result.SpecKey);
+        Assert.All(result.Operations, operation => Assert.Equal("Pets", operation.SpecKey));
     }
 
     [Fact]
@@ -369,6 +373,43 @@ public class OpenApiIngestorTests
         var result = _ingestor.Import(EmptyPathsSpec);
 
         Assert.Empty(result.Operations);
+        Assert.Equal("Empty", result.SpecKey);
+    }
+
+    [Fact]
+    public void Import_WhitespaceTitle_NormalizesSpecKey()
+    {
+        var spec = ValidOpenApi3Spec.Replace("\"Pets\"", "\"  Customer   API  \"", StringComparison.Ordinal);
+
+        var result = _ingestor.Import(spec);
+
+        Assert.Equal("Customer API", result.SpecKey);
+        Assert.All(result.Operations, operation => Assert.Equal("Customer API", operation.SpecKey));
+    }
+
+    [Fact]
+    public void Import_BlankTitle_UsesUntitledFallback()
+    {
+        var spec = ValidOpenApi3Spec.Replace("\"Pets\"", "\"   \"", StringComparison.Ordinal);
+
+        var result = _ingestor.Import(spec);
+
+        Assert.Equal(OpenApiSpecKey.UntitledFallback, result.SpecKey);
+        Assert.All(result.Operations, operation => Assert.Equal(OpenApiSpecKey.UntitledFallback, operation.SpecKey));
+    }
+
+    [Fact]
+    public void Import_VersionChange_DoesNotChangeSpecKey()
+    {
+        var v2 = ValidOpenApi3Spec.Replace("\"1.0.0\"", "\"2.0.0\"", StringComparison.Ordinal);
+
+        var first = _ingestor.Import(ValidOpenApi3Spec);
+        var second = _ingestor.Import(v2);
+
+        Assert.Equal("1.0.0", first.Version);
+        Assert.Equal("2.0.0", second.Version);
+        Assert.Equal(first.SpecKey, second.SpecKey);
+        Assert.Equal("Pets", second.SpecKey);
     }
 
     [Fact]

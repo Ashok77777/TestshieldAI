@@ -34,9 +34,13 @@ public sealed class OpenApiIngestor : IOpenApiIngestor
             throw new InvalidOperationException($"OpenAPI specification could not be parsed: {details}");
         }
 
+        var title = document.Info?.Title;
+        var version = document.Info?.Version;
+        var specKey = OpenApiSpecKey.FromTitle(title);
+
         if (document.Paths is null || document.Paths.Count == 0)
         {
-            return new OpenApiImportResult([]);
+            return new OpenApiImportResult([], title, version);
         }
 
         var operations = new List<ImportedOperation>();
@@ -50,11 +54,11 @@ public sealed class OpenApiIngestor : IOpenApiIngestor
 
             foreach (var (operationType, operation) in pathItem.Operations)
             {
-                operations.Add(MapOperation(document, path, pathItem, operationType, operation));
+                operations.Add(MapOperation(document, path, pathItem, operationType, operation, specKey));
             }
         }
 
-        return new OpenApiImportResult(operations);
+        return new OpenApiImportResult(operations, title, version);
     }
 
     private static ImportedOperation MapOperation(
@@ -62,7 +66,8 @@ public sealed class OpenApiIngestor : IOpenApiIngestor
         string path,
         OpenApiPathItem pathItem,
         OperationType operationType,
-        OpenApiOperation operation)
+        OpenApiOperation operation,
+        string specKey)
     {
         var method = operationType.ToString().ToUpperInvariant();
         var parameters = MergeParameters(document, pathItem, operation);
@@ -73,7 +78,7 @@ public sealed class OpenApiIngestor : IOpenApiIngestor
         var requestSchema = MapMediaSchema(document, requestBody?.Content);
         var responses = MapResponses(document, operation.Responses);
 
-        return new ImportedOperation(method, path, parameters, requestSchema, responses);
+        return new ImportedOperation(method, path, parameters, requestSchema, responses, specKey);
     }
 
     private static IReadOnlyList<ImportedParameter> MergeParameters(
